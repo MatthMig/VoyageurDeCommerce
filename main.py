@@ -86,6 +86,7 @@ def little_algo(c):
     root = Node(parent=None, lower_bound=h, matrix=reduction_matrix)
     tree.put((h, root))
     absolute_lower_bound = h
+    best_node = root
     while not tree.empty():
         X = tree.get()[1]
         R, h = reduction(X.matrix)
@@ -97,9 +98,11 @@ def little_algo(c):
         R_ = copy.deepcopy(R)
         R_[i][j] = float('inf')
         lower_bound = X.lower_bound + regret
+        if lower_bound != float('inf'):
+            tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R_)))
         if lower_bound <= absolute_lower_bound:
             absolute_lower_bound = lower_bound
-        tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R_)))
+            best_node = X.son_L
 
         # Right branch (we do take the path)
         R[i] = [float('inf') for _ in range(len(R[i]))]
@@ -108,42 +111,23 @@ def little_algo(c):
         R[j][i] = float('inf')
         #lower_bound = X.lower_bound + h
         lower_bound = float('inf')
+        tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R, vertex = (i,j))))
         if lower_bound <= absolute_lower_bound:
             absolute_lower_bound = lower_bound
-        tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R, vertex = (i,j))))
-    return root
+            best_node = X.son_R
+    return best_node
+
+def get_path(node):
+    result = []
+    while node is not None:
+        if node.vertex is not None:
+            result.append(node.vertex)
+        node = node.parent
+    return result[::-1]
 
 matrix = [[float('inf'), 10, 15, 20],
           [10, float('inf'), 35, 25],
           [15, 35, float('inf'), 30],
           [20, 25, 30, float('inf')]]
 
-root = little_algo(matrix)
-
-def find_min_leaf_with_parents(root):
-    min_leaf = None
-    parent_stack = []
-
-    def dfs(node):
-        nonlocal min_leaf
-        if not node:
-            return
-
-        parent_stack.append(node.vertex)
-
-        if not node.son_L and not node.son_R:
-            if min_leaf is None or node.lower_bound < min_leaf.lower_bound:
-                min_leaf = node
-        else:
-            if not node.son_L or (node.son_R and node.son_R.lower_bound < node.son_L.lower_bound):
-                dfs(node.son_R)
-            else:
-                dfs(node.son_L)
-
-        parent_stack.pop()
-
-    dfs(root)
-    
-    return parent_stack
-
-print(find_min_leaf_with_parents(root))
+print(get_path(little_algo(matrix)))
