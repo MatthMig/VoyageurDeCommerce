@@ -90,6 +90,8 @@ def little_algo(c):
         X = tree.get()[1]
         if X.lower_bound > borne_sup:
             continue
+        if X.matrix == [[float('inf') for _ in range(len(X.matrix))] for _ in range(len(X.matrix))]:
+            continue
         R, h = reduction(X.matrix)
         i, j, max_regret = regrets_calculation(R)
 
