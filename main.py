@@ -97,8 +97,7 @@ def little_algo(c):
         R_ = copy.deepcopy(R)
         R_[i][j] = float('inf')
         lower_bound = X.lower_bound
-        if lower_bound != float('inf'):
-            tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R_)))
+        tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R_)))
 
         # Right branch (we do take the path)
         R[i] = [float('inf') for _ in range(len(R[i]))]
@@ -110,7 +109,7 @@ def little_algo(c):
         tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R, vertex = (i,j))))
 
         # Check if we have found a lower bound better than the current absolute superior bound
-        if all(element == float('inf') for row in matrix for element in row) and lower_bound <= borne_sup:
+        if all(element == float('inf') for row in X.matrix for element in row) and lower_bound <= borne_sup:
             borne_sup = lower_bound
             best_leaf = X.son_R
     return best_leaf
