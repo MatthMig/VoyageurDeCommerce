@@ -82,40 +82,38 @@ def regrets_calculation(matrix):
 def little_algo(c):
     tree = queue.PriorityQueue()
     reduction_matrix, h = reduction(c)
-    i,j,regret = regrets_calculation(reduction_matrix)
-    root = Node(parent=None, lower_bound=h, matrix=reduction_matrix)
-    tree.put((h, root))
-    absolute_lower_bound = h
-    best_node = root
+    i, j, max_regret = regrets_calculation(reduction_matrix)
+    tree.put((h, Node(parent=None, lower_bound=h, matrix=reduction_matrix)))
+    borne_sup = h
+    best_leaf = None
     while not tree.empty():
         X = tree.get()[1]
-        R, h = reduction(X.matrix)
-        if h == float('inf'):
+        if X.lower_bound > borne_sup:
             continue
-        i, j, regret = regrets_calculation(R)
+        R, h = reduction(X.matrix)
+        i, j, max_regret = regrets_calculation(R)
 
         # Left branch (we do not take the path)
         R_ = copy.deepcopy(R)
         R_[i][j] = float('inf')
-        lower_bound = X.lower_bound + regret
+        lower_bound = X.lower_bound
         if lower_bound != float('inf'):
             tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R_)))
-        if lower_bound <= absolute_lower_bound:
-            absolute_lower_bound = lower_bound
-            best_node = X.son_L
 
         # Right branch (we do take the path)
         R[i] = [float('inf') for _ in range(len(R[i]))]
         for row in R:
             row[j] = float('inf')
         R[j][i] = float('inf')
-        #lower_bound = X.lower_bound + h
-        lower_bound = float('inf')
+        
+        lower_bound = X.lower_bound + h
         tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R, vertex = (i,j))))
-        if lower_bound <= absolute_lower_bound:
-            absolute_lower_bound = lower_bound
-            best_node = X.son_R
-    return best_node
+
+        # Check if we have found a lower bound better than the current absolute superior bound
+        if all(element == float('inf') for row in matrix for element in row) and lower_bound <= borne_sup:
+            borne_sup = lower_bound
+            best_leaf = X.son_R
+    return best_leaf
 
 def get_path(node):
     result = []
