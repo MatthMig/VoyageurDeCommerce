@@ -72,17 +72,19 @@ def little_algo(c):
             continue
 
         R, h = reduction(X.matrix)
-        starting_ending_city = get_starting_ending_city(get_path(X))
-        i, j, max_regret = regrets_calculation(R, starting_ending_city)
+        starting_ending_cities = get_starting_ending_cities(get_path(X))
+        i, j, max_regret = regrets_calculation(X.matrix, starting_ending_cities)
 
         # Single tour node near
         if single_tour_node_near(X.matrix):
-            #print(get_path(X))
             # If current path is not a possible tour, we do not consider it
             if len(get_path(X)) < len(X.matrix) - 1:
                 continue
             # Check where go to finish the tour
-            j,i = starting_ending_city
+            #if len(starting_ending_cities) > 1:
+                #print("starting_ending_cities: ", starting_ending_cities)
+                #print("get_path(X): ", get_path(X))
+            j,i = starting_ending_cities[0]
             # Leaf node
             R[i] = [float('inf') for _ in range(len(R[i]))]
             R[j][i] = float('inf')
@@ -98,7 +100,7 @@ def little_algo(c):
         # Left branch (we do not take the path)
         R_ = copy.deepcopy(R)
         R_[i][j] = float('inf')
-        lower_bound = X.lower_bound
+        lower_bound = X.lower_bound + max_regret
         tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R_)))
 
         # Right branch (we do take the path)
@@ -132,12 +134,12 @@ def reduction(matrix):
     return matrix, h
 
 # Returns max regret and matrix position corresponding to it
-def regrets_calculation(matrix, starting_ending_city=[]):
+def regrets_calculation(matrix, starting_ending_cities=[]):
     matrix = copy.deepcopy(matrix)
     max_regret = -1
     max_path = (0,0)
-    if starting_ending_city:
-        matrix[starting_ending_city[1]][starting_ending_city[0]] = float('inf')
+    for st_ed in starting_ending_cities:
+        matrix[st_ed[1]][st_ed[0]] = float('inf')
     for i in range(len(matrix)):
         for j in range(len(matrix[0])):
             if matrix[i][j] != 0:
@@ -148,17 +150,23 @@ def regrets_calculation(matrix, starting_ending_city=[]):
                 max_path = (i,j)
     return max_path[0], max_path[1], max_regret
 
-def get_starting_ending_city(path):
-    st_ed = [None, None]
-    from_cities = [p[0] for p in path]
-    to_cities = [p[1] for p in path]
-    for s in from_cities:
-        if not s in to_cities:
-            st_ed[0] = s
-    for p in to_cities:
-        if not p in from_cities:
-            st_ed[1] = p
-            return st_ed
+def get_starting_ending_cities(path):
+    st_ed_all = []
+    path_dict_from_to = {p[0]:p[1] for p in path}
+
+    while path_dict_from_to:
+        # Check all following travels
+        st = From = list(path_dict_from_to.keys())[0]   # Get an initial travel
+        while From in path_dict_from_to:
+            To = path_dict_from_to.pop(From)
+            From = To
+        # Check all previous travels
+        while st in [p[1] for p in path_dict_from_to.items()]:
+            From = [p for p in path_dict_from_to.items() if p[1] == st][0]
+            del path_dict_from_to[From[0]]
+            st = From[0]
+        st_ed_all.append((st, To))
+    return st_ed_all
 
 def single_tour_node_near(matrix):
     cpt = 0
