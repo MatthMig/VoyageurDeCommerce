@@ -76,19 +76,23 @@ def little_algo(c):
         i, j, max_regret = regrets_calculation(X.matrix, starting_ending_cities)
 
         # Single tour node near
-        if single_tour_node_near(X.matrix):
+        remaining_cities = cities_remaining(X.matrix)
+        if remaining_cities <= 2:
             # If current path is not a possible tour, we do not consider it
-            if len(get_path(X)) < len(X.matrix) - 1:
+            if len(get_path(X)) + remaining_cities < len(X.matrix):
                 continue
-            # Check where go to finish the tour
-            #if len(starting_ending_cities) > 1:
-                #print("starting_ending_cities: ", starting_ending_cities)
-                #print("get_path(X): ", get_path(X))
-            j,i = starting_ending_cities[0]
+            # Finish the tour if there is two cities remaining
+            if remaining_cities == 2:
+                R[i][j] = float('inf')
+                X.son_R = Node(parent=X, lower_bound=X.lower_bound + h, matrix=R,
+                           vertex=(i, j))
+                X = X.son_R
+                starting_ending_cities = get_starting_ending_cities(get_path(X))
+                
             # Leaf node
-            R[i] = [float('inf') for _ in range(len(R[i]))]
-            R[j][i] = float('inf')
-            X.son_R = Node(parent=X, lower_bound=X.lower_bound + h, matrix=R, vertex = (i,j))
+            R = [[float('inf') for _ in range(len(R[i]))] for i in range(len(R))]
+            X.son_R = Node(parent=X, lower_bound=X.lower_bound, matrix=R,
+                           vertex=(starting_ending_cities[0][1], starting_ending_cities[0][0]))
             X = X.son_R
 
             # Check if we have found a lower bound better than the current absolute superior bound
@@ -111,12 +115,19 @@ def little_algo(c):
         lower_bound = X.lower_bound + h
         tree.put((lower_bound, Node(parent=X, lower_bound=lower_bound, matrix=R, vertex = (i,j))))
 
-    return get_path(best_leaf)
+    # Return the best path found
+    result_path = get_path(best_leaf)
+    # Check if solution is correct
+    starting_ending_cities = get_starting_ending_cities(result_path)
+    if starting_ending_cities[0][0] != starting_ending_cities[0][1]:
+        print("RESULT NOT CORRECT, GRAPHIC IS CONNEX")
+    return result_path
 
 # Returns reduction of the matrix and sum of reducing constants
 def reduction(matrix):
     matrix = copy.deepcopy(matrix)
     h = 0
+    # Check if matrix has only infinite values
     if [i for row in matrix for i in row if i != float('inf')] == []:
         return matrix, float('inf')
     for i,r in enumerate(matrix):
@@ -140,6 +151,7 @@ def regrets_calculation(matrix, starting_ending_cities=[]):
     max_path = (0,0)
     for st_ed in starting_ending_cities:
         matrix[st_ed[1]][st_ed[0]] = float('inf')
+    matrix,h = reduction(matrix)
     for i in range(len(matrix)):
         for j in range(len(matrix[0])):
             if matrix[i][j] != 0:
@@ -168,15 +180,15 @@ def get_starting_ending_cities(path):
         st_ed_all.append((st, To))
     return st_ed_all
 
-def single_tour_node_near(matrix):
+def cities_remaining(matrix):
     cpt = 0
     for row in matrix:
         for i in row:
             if i != float('inf'):
                 cpt += 1
                 if cpt > 2:
-                    return False
-    return True
+                    return cpt
+    return cpt
 
 # Go from node to root and return list of all vertexes
 def get_path(node):
