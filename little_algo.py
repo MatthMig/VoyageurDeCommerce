@@ -96,8 +96,8 @@ def little_algo(c):
             X = X.son_R
 
             # Check if we have found a lower bound better than the current absolute superior bound
-            if lower_bound < sup_bound and X.vertex is not None:
-                sup_bound = lower_bound
+            if X.lower_bound < sup_bound and X.vertex is not None:
+                sup_bound = X.lower_bound
                 best_leaf = X
             continue
 
@@ -162,6 +162,7 @@ def regrets_calculation(matrix, starting_ending_cities=[]):
                 max_path = (i,j)
     return max_path[0], max_path[1], max_regret
 
+# Get all starting and ending cities from a path, takes in account possible connexity of path
 def get_starting_ending_cities(path):
     st_ed_all = []
     path_dict_from_to = {p[0]:p[1] for p in path}
@@ -180,6 +181,7 @@ def get_starting_ending_cities(path):
         st_ed_all.append((st, To))
     return st_ed_all
 
+# Returns number of cities remaining in the matrix
 def cities_remaining(matrix):
     cpt = 0
     for row in matrix:
